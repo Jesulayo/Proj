@@ -1,0 +1,3 @@
+<launch>
+    <node pkg="test_pkg" type="avoidobstacle.py" name="make_thorvald_move"/>
+</launch>

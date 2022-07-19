@@ -1,0 +1,8 @@
+package list
+- robot_simulation
+- robot_localisation
+- robot interface
+- robot mapping
+- robot navigation
+- packages for custom messages
+- package for logging topics potentially
