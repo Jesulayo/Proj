@@ -14,7 +14,8 @@ class ObstacleAvoidance:
 
 
     def check_obstacle(self, data):
-        min_laserscan = min(data.ranges)
+
+        # create a new laser scan and copy the incoming laser scan objects into it
         move = LaserScan()
         move.header.frame_id = data.header.frame_id
         move.header.stamp.secs = data.header.stamp.secs
@@ -24,69 +25,41 @@ class ObstacleAvoidance:
         move.range_min = data.range_min
         move.angle_min = data.angle_min
         move.angle_max = data.angle_max
-        # move.ranges = data.ranges
         
-        # move.angle_min = -1
-        # move.angle_max = 1
-        # move.range_max = 8
-        angle = []
-        new_angle = []
-        coord = []
-        new_coord = []
-
-        print('new batch')
-        # print('ange count: ' + str(len(data.ranges)))
-        # print('angle_min: ' + str(data.angle_min))
-        # adeg = data.angle_min * (180/math.pi)
-        # print('angle_min deg: ' + str(adeg))
-        # print('angle_max: ' + str(data.angle_max))
-        # amaxdeg = data.angle_max * (180/math.pi)
-        # print('angle_max deg: ' + str(amaxdeg))
-        # print('angle_increment: ' + str(data.angle_increment))
-        # amaxdeg = data.angle_increment * (180/math.pi)
-        # print('angle_increment deg: ' + str(amaxdeg))
-
+        range = []
+        new_range = []
+        print('frame: ' + str(data.header.frame_id))
+        #convert ranges into cartesian coordinate
         for index, value in enumerate(data.ranges):
-            # print(idx, x)
             a = data.angle_min + index*data.angle_increment
-            # print('angle for calculation: ' + str(a))
-            # print('cos angle: ' + str(math.cos(a)))
-            # print('sin angle: ' + str(math.sin(a)))
             x = value*math.cos(a)
             y = value*math.sin(a) 
-            # print('j: ' + str(j))
-            # print('k: ' + str(k))
 
             (e,f) = (x,y)
             print((x,y))
-            # angle.append(x)
-            # print("the value is: " + str(j) + " " + str(k))
-            if( y >= 0 and y < 12):
-                coord.append((x,y))
-                angle.append(value)
+            
+            #filter ranges based on the x coordinate
+            #if the x axis fall within the condition below, append the value into angle array for further processing else append 0
+            if( x >= 0 and x < 8):
+                range.append(value)
             else:
-                # print('appending less than 5')
-                angle.append(0)
+                range.append(0)
 
+        #filter ranges based on the y coordinate
+        #if the y axis fall within the condition below, append the value else append 0
+        for idx, x in enumerate(range):
+            a = data.angle_min + idx*data.angle_increment
+            j = x*math.cos(a)
+            k = x*math.sin(a) 
 
-        # for idx, x in enumerate(data.ranges):
-        #     a = data.angle_min + idx*data.angle_increment
-        #     j = x*math.cos(a)
-        #     k = x*math.sin(a) 
+            if( k >= -0.5 and k < 12 ):
+                new_range.append(x)
+            else:
+                new_range.append(0)
+        
 
-        #     if( k >= -15 and k < 12 ):
-        #         # print('appending greater than 5')
-        #         new_coord.append((j,k))
-        #         new_angle.append(x)
-        #     else:
-        #         # print('appending less than 5')
-        #         new_angle.append(0)
-        # print('new angle: ' + str(len(new_angle)))
-        move.ranges = angle
-        # print('printing coord')
-        # print(coord)
-        # for idx, x in enumerate(angle):
-            # print(x, "reading")
+        move.ranges = new_range
+        
         self.publisher.publish(move)
 
 

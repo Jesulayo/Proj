@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="tf" type="static_transform_publisher" name="static_lasaer_transform" args="0 0 0 0.78539 0 0 /thorvald_001/hokuyo_front /layo_front_scan_frame 1000"/>
+    <node pkg="test_pkg" type="withposearray.py" name="withposearray" output="screen"/>
+
+</launch>

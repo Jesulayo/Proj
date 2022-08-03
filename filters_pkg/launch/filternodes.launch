@@ -1,0 +1,7 @@
+<launch>
+  <node pkg="laser_filters" type="LaserScanBoxFilter"
+      name="laser_filter">
+    <rosparam command="load" file="$(find filters_pkg)/config/my_laser_cfg.yaml" />
+    <remap from="scan" to="/thorvald_001/front_scan" />
+  </node>
+</launch>
