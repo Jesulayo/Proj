@@ -3,7 +3,7 @@
 import rospy
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import LaserScan
-from geometry_msgs.msg import Pose, PoseArray
+from geometry_msgs.msg import Pose, PoseArray, Polygon, Point32
 
 #########################################################################################################################
 ## I was a bit confused here because I thought you were going to add a pose array
@@ -21,18 +21,13 @@ class ObstacleAvoidance:
         self.subscriber = rospy.Subscriber("/thorvald_001/front_scan", LaserScan, self.check_obstacle)
         self.pub_grape_poses = rospy.Publisher("/laser_poses", PoseArray, queue_size=1)
         self.pub_grape_poses2 = rospy.Publisher("/laser_ppses2", PoseArray, queue_size=1)
-
+        self.polygon_publisher = rospy.Publisher("/publish_polygon", Polygon, queue_size=10)
         self.rate = rospy.Rate(10)
 
 
     def check_obstacle(self, data):
-
+        poly = Polygon()
         # create a new laser scan and copy the incoming laser scan objects into it
-
-        '''
-        move = LaserScan()
-        move = data
-        '''
         pose_array = PoseArray()
         pose_array2 = PoseArray()
         pose_array.header.frame_id = 'layo_front_scan_frame'
@@ -59,12 +54,6 @@ class ObstacleAvoidance:
         right_x_axis = []
         right_y_axis = []
 
-        ##########################################################################################################################
-        ## Above this bit this is all good
-
-
-
-
 
         #########################################################################################################################
         print('batch')
@@ -75,10 +64,6 @@ class ObstacleAvoidance:
             y = value*math.sin(a)
 
             (e,f) = (x,y)
-            # print((x,y))
-
-
-
 
             #filter ranges based on the x coordinate
             #if the x axis fall within the condition below, append the value into angle array for further processing else append 0
@@ -120,7 +105,11 @@ class ObstacleAvoidance:
 
             if( k >= -2.5 and k < 3 ):
                 new_range.append(x)
-                
+                # pointe = Point32()
+
+                # pointe.x = j
+                # pointe.y = k
+                # poly.points.append(pointe)
                 if( k >= -2.5 and k < 0 ):
                     print('RIGHT')
                     right_x_axis.append(j)
@@ -137,21 +126,41 @@ class ObstacleAvoidance:
         if(self.update):
             self.update = False
             print('update true')
+            pointe = Point32()
+
             right_max_x = max(right_x_axis)
-            right_max_y = max(right_y_axis)
+            right_max_y = min(right_y_axis)
+            pointe.x = right_max_x
+            pointe.y = right_max_y
+            poly.points.append(pointe)
+
+            right_min_x = max(right_x_axis)
+            right_min_y = min(right_y_axis)
+            pointe.x = right_min_x
+            pointe.y = right_min_y
+            poly.points.append(pointe)
 
             left_max_x = max(left_x_axis)
-            left_min_x = min(left_x_axis)
-            left_max_x = max(left_y_axis)
+            left_max_y = min(left_y_axis)
+            pointe.x = left_max_x
+            pointe.y = left_max_y
+            poly.points.append(pointe)
+
+            left_min_x = max(left_x_axis)
             left_min_y = min(left_y_axis)
+            pointe.x = left_min_x
+            pointe.y = left_min_y
+            poly.points.append(pointe)
+            self.polygon_publisher.publish(poly)
+
 
             # print('x max: ' + str(right_max_x))
             # print('y max: ' + str(right_max_y))
 
-            print('x max: ' + str(left_max_x))
-            print('y max: ' + str(left_min_x))
-            print('y max: ' + str(left_max_x))
-            print('y max: ' + str(left_min_y))
+            # print('x max: ' + str(left_max_x))
+            # print('y max: ' + str(left_min_x))
+            # print('y max: ' + str(left_max_x))
+            # print('y max: ' + str(left_min_y))
 
 
 
