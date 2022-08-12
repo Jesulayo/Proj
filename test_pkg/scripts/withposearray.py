@@ -3,40 +3,77 @@
 import rospy
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import LaserScan
-from geometry_msgs.msg import Pose, PoseArray
-
-#########################################################################################################################
-## I was a bit confused here because I thought you were going to add a pose array
-## Should have here
-
-#########################################################################################################################
+from geometry_msgs.msg import Pose, PoseArray, Point
+from tf.transformations import euler_from_quaternion
+from nav_msgs.msg import Odometry
 import numpy as np
 import math
 
 class ObstacleAvoidance:
     def __init__(self):
+        self.x = 0.0
+        self.y = 0.0
+        self.theta = 0.0
+
         self.update = True
+        self.updatee = True
 
         self.publisher = rospy.Publisher("/thorvald_001/layo_front_scan", LaserScan, queue_size=10)
+        self.cmd = rospy.Publisher("/thorvald_001/teleop_joy/cmd_vel", Twist, queue_size=10)
+
         self.subscriber = rospy.Subscriber("/thorvald_001/front_scan", LaserScan, self.check_obstacle)
+        self.odom = rospy.Subscriber("/thorvald_001/odometry/gazebo", Odometry, self.newOdom)
+
+
         self.pub_grape_poses = rospy.Publisher("/laser_poses", PoseArray, queue_size=1)
         self.pub_grape_poses2 = rospy.Publisher("/laser_ppses2", PoseArray, queue_size=1)
 
         self.rate = rospy.Rate(10)
+    
+
+    def newOdom(self, msg):
+        print('received odom')
+        self.x = msg.pose.pose.position.x
+        self.y = msg.pose.pose.position.y
+        rot_q = msg.pose.pose.orientation
+        (roll, pitch, self.theta) = euler_from_quaternion([rot_q.x, rot_q.y, rot_q.z, rot_q.w])
+        print('x: ' + str(self.x))
+        print('y: ' + str(self.y))
+        print('z: ' + str(self.theta))
+
 
 
     def check_obstacle(self, data):
+        print('check_obstacle')
+        # if(self.update) == True:
+        #     goal = Point()
+        #     goal.x = 0
+        #     goal.y = 0
 
-        # create a new laser scan and copy the incoming laser scan objects into it
+        #     speed = Twist()
+        #     inc_x = goal.x - self.x
+        #     inc_y = goal.y - self.y
+        #     angle_to_goal = math.atan2(inc_y, inc_x)
+        #     print('inc_x: ' + str(inc_x))
+        #     print('inc_y: ' + str(inc_y))
 
-        '''
-        move = LaserScan()
-        move = data
-        '''
+        #     print('angle to goal: ' + str(angle_to_goal))
+        #     if abs(angle_to_goal - self.theta) > 0.1:
+        #         speed.linear.x = 0
+        #         speed.angular.z = 0.3
+        #     else:
+        #         speed.linear.x = 0.5
+        #         speed.angular.y = 0
+            
+        #     if(self.updatee == True):
+        #         print('publishing spped')
+        #         self.cmd.publish(speed)
+
         pose_array = PoseArray()
-        pose_array2 = PoseArray()
+        # pose_array2 = PoseArray()
         pose_array.header.frame_id = 'layo_front_scan_frame'
-        pose_array2.header.frame_id = 'layo_front_scan_frame'
+        # pose_array2.header.frame_id = 'layo_front_scan_frame'
+
 
 
         move = LaserScan()
@@ -59,14 +96,13 @@ class ObstacleAvoidance:
         right_x_axis = []
         right_y_axis = []
 
-        ##########################################################################################################################
-        ## Above this bit this is all good
+        right_range = []
+        left_range = []
+        further_process = []
+        left_further_process = []
+        right_further_process = []
+        kk = 0
 
-
-
-
-
-        #########################################################################################################################
         print('batch')
         #convert ranges into cartesian coordinate
         for index, value in enumerate(data.ranges):
@@ -75,83 +111,134 @@ class ObstacleAvoidance:
             y = value*math.sin(a)
 
             (e,f) = (x,y)
-            # print((x,y))
-
-
-
-
-            #filter ranges based on the x coordinate
+            
+            #filter ranges based on the x coordinateAq1
             #if the x axis fall within the condition below, append the value into angle array for further processing else append 0
-            if( x >= 0 and x < 20):
+            if( x >= 0 and x < 3):
                 range.append(value)
             else:
                 range.append(0)
 
-            # # add point to msg
-            # object_location = Pose()
-            # object_location.orientation.w = 1.0
-            # object_location.position.x = x
-            # object_location.position.y = y
-            # object_location.position.z = 0.0
-            # if(object_location.position.y < 2):
-            #     print(object_location.position.x, object_location.position.y)
-            #     pose_array2.poses.append(object_location)
-            # else:
-            #     print('discard')
-            # pose_array.poses.append(object_location)
+            # add point to msg
 
-        #########################################################################################################################
-        # So here above you are filtering points depending on how far in front of the thorvald it is.
-        # range is between 0.5 - 8 m which is why you don't see the blue marked points
+           
 
-        # you can make a pose array topic and publish these points in relation to the frame id of the laser scanner
-        # you could also include the tf transformation between the laser frame id and the odom frame to the points and then keep them on the map permenantly while new scans come in
-
-
-
-        #########################################################################################################################
-
-        #filter ranges based on the y coordinate
-        #if the y axis fall within the condition below, append the value else append 0
+        # filter ranges based on the y coordinate
+        # if the y axis fall within the condition below, append the value else append 0
         for idx, x in enumerate(range):
             a = data.angle_min + idx*data.angle_increment -(math.pi/4)
             j = x*math.cos(a)
             k = x*math.sin(a)
 
-            if( k >= -2.5 and k < 3 ):
+            if( k >= -1.0 and k < 3 ):
                 new_range.append(x)
+                further_process.append((x,j,k))
                 
                 if( k >= -2.5 and k < 0 ):
-                    print('RIGHT')
+                    # print('RIGHT')
+                    right_further_process.append((x,j,k))
+                    right_range.append(x)
                     right_x_axis.append(j)
                     right_y_axis.append(k)
+                    
                 else:
-                    print('LEFT')
+                    right_further_process.append((0,0,0))
+                    right_range.append(0)
+
+                if( k >= 0 and k < 3 ):
+                    left_further_process.append((x,j,k))
+                    left_range.append(x)
+                    # print('LEFT')
                     left_x_axis.append(j)
                     left_y_axis.append(k)
+                else:
+                    left_further_process.append((0,0,0))
+                    left_range.append(0)
+                    
 
             else:
                 new_range.append(0)
+                right_range.append(0)
+                left_range.append(0)
         print('new axis')
+        # print(new_range)
 
         if(self.update):
-            self.update = False
+            # self.update = False
             print('update true')
-            right_max_x = max(right_x_axis)
+            # print(left_y_axis)
+            left_y_axis = [i for i in left_y_axis if i != 0]
+            # print('new update true')
+            # print(left_y_axis)
+            print('left_y_axis')
+
+            left = min(left_y_axis)
+            print('min: ' + str(left))
+
+            # print(right_y_axis)
+            print('right_y_axis')
+
+            right_y_axis = [i for i in right_y_axis if i != 0]
+            right = max(right_y_axis)
+            # print(right_y_axis)
+            print('max: ' + str(right))
+            space = (left + right)/2
+            print('space: ' + str(space))
+
+            object_location = Pose()
+            object_location.orientation.w = 1.0
+            object_location.position.x = 2
+            object_location.position.y = space
+            pose_array.poses.append(object_location)
+            # goal = Point()
+            # goal.x = 0
+            # goal.y = space
+
+            # speed = Twist()
+            # inc_x = goal.x - self.x
+            # inc_y = goal.y - self.y
+            # angle_to_goal = math.atan2(inc_y, inc_x)
+            # print('inc_x: ' + str(inc_x))
+            # print('inc_y: ' + str(inc_y))
+
+            # print('angle to goal: ' + str(angle_to_goal))
+            # if abs(angle_to_goal - self.theta) > 0.1:
+            #     speed.linear.x = 0
+            #     speed.angular.z = 0.3
+            # else:
+            #     speed.linear.x = 0.5
+            #     speed.angular.y = 0
+            
+            # if(self.updatee == True):
+            #     print('publishing spped')
+            #     self.cmd.publish(speed)
+
+
+
+
+
+
+
+
+            # right_max_x = max(right_x_axis)
             right_max_y = max(right_y_axis)
+
+            left_max_y = max(left_y_axis)
 
             left_max_x = max(left_x_axis)
             left_min_x = min(left_x_axis)
-            left_max_x = max(left_y_axis)
+            
             left_min_y = min(left_y_axis)
 
             # print('x max: ' + str(right_max_x))
             # print('y max: ' + str(right_max_y))
 
-            print('x max: ' + str(left_max_x))
-            print('y max: ' + str(left_min_x))
-            print('y max: ' + str(left_max_x))
-            print('y max: ' + str(left_min_y))
+            # print('x max: ' + str(left_max_x))
+            # print('y max: ' + str(left_min_x))
+            # print('y max: ' + str(left_max_x))
+            # print('y max: ' + str(left_min_y))
+
+
 
 
 
@@ -164,9 +251,17 @@ class ObstacleAvoidance:
             # print('min of k: ' + min(k))            
 
         move.ranges = new_range
+        # move.ranges = left_range
 
+
+        # print('further_process')
+        # print(left_further_process)
+        # print('lala')
+        # print(further_process[2][0])
+        # print(further_process[2][1])
+        # print(further_process[2][2])
         self.publisher.publish(move)
-        # self.pub_grape_poses.publish(pose_array)
+        self.pub_grape_poses.publish(pose_array)
         # self.pub_grape_poses2.publish(pose_array)
 
         #########################################################################################################################
