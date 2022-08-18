@@ -130,7 +130,7 @@ class ObstacleAvoidance:
             j = x*math.cos(a)
             k = x*math.sin(a)
 
-            if( k >= -1.0 and k < 3 ):
+            if( k >= -2.5 and k < 3 ):
                 new_range.append(x)
                 further_process.append((x,j,k))
                 
@@ -187,7 +187,7 @@ class ObstacleAvoidance:
 
             object_location = Pose()
             object_location.orientation.w = 1.0
-            object_location.position.x = 2
+            object_location.position.x = 3
             object_location.position.y = space
             pose_array.poses.append(object_location)
             # goal = Point()
