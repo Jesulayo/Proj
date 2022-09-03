@@ -25,6 +25,10 @@ class ObstacleAvoidance:
         self.updatee = True
         self.twistRobot = True
 
+        self.listener = tf.TransformListener()
+        self.listener.waitForTransform("thorvald_001/hokuyo_front", "thorvald_001/base_link", rospy.Time(), rospy.Duration(4.0))
+        
+
 
         self.publisher = rospy.Publisher("/thorvald_001/layo_front_scan", LaserScan, queue_size=10)
         self.cmd = rospy.Publisher("/thorvald_001/teleop_joy/cmd_vel", Twist, queue_size=10)
@@ -183,6 +187,7 @@ class ObstacleAvoidance:
         # print(new_range)
 
         if(self.update):
+            print('in update')
             # self.update = False
             print('update true')
             # print(left_y_axis)
@@ -211,11 +216,9 @@ class ObstacleAvoidance:
             object_location.position.y = space
             pose_array.poses.append(object_location)
 
-            listener = tf.TransformListener()
-            listener.waitForTransform("thorvald_001/hokuyo_front", "thorvald_001/base_link", rospy.Time(), rospy.Duration(4.0))
 
             point = Point()
-            point.x = 3
+            point.x = 2
             point.y = space
 
             point_transformed = PointStamped()
@@ -224,7 +227,7 @@ class ObstacleAvoidance:
             point_transformed.point = point
 
             try:
-                p = listener.transformPoint("thorvald_001/base_link", point_transformed)
+                self.p = self.listener.transformPoint("thorvald_001/base_link", point_transformed)
             except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
                 print('Error')
 
@@ -344,9 +347,9 @@ class ObstacleAvoidance:
         # print(further_process[2][2])
         self.publisher.publish(move)
         # self.cmd.publish(speed)
-
+        print('pp: '  + str(self.p))
         self.cebter_poses.publish(pose_array)
-        self.point_pub.publish(p)
+        self.point_pub.publish(self.p)
 
         # self.center_point.publish(point_transformed)
         # self.movebase.publish(poseStamp)

@@ -15,8 +15,8 @@ class ObstacleAvoidance:
         min_laserscan = min(data.ranges)
         move = Twist()
 
-        if min_laserscan < 1.5:
-            move.angular.z = 2.5
+        if min_laserscan < 2:
+            move.angular.z = 1
         else:
             move.linear.x = 0.8
                 
