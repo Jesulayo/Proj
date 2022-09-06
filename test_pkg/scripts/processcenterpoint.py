@@ -25,10 +25,13 @@ class CenterPoint:
 
 
     def newOdom(self, msg):
-        print('received odom')
+        # print('received odom')
         self.x = msg.pose.pose.position.x
         self.y = msg.pose.pose.position.y
         rot_q = msg.pose.pose.orientation
+        # print("self x: " + str(self.x))
+        # print("self y: " + str(self.y))
+
         # print('pose: ' + str(rot_q))
         # print()
         (roll, pitch, self.theta) = euler_from_quaternion([rot_q.x, rot_q.y, rot_q.z, rot_q.w])
@@ -42,29 +45,30 @@ class CenterPoint:
         print('y: ' + str(goal.y))
 
 
-        inc_x = goal.x - self.x
-        inc_y = goal.y - self.y
+        # inc_x = goal.x - self.x
+        # inc_y = goal.y - self.y
 
-        angle_to_goal = math.atan2(inc_y, inc_x)
+        angle_to_goal = math.atan2(goal.y, goal.x)
         # print('angle: ' + str(angle_to_goal))
         # print('theta: ' + str(self.theta))
         speed = Twist()
         a = angle_to_goal - self.theta
         print('angle_to_goal' + str(angle_to_goal))
-        print('a: ' + str(a))
+        # print('a: ' + str(a))
 
 
-        if angle_to_goal < -0.05:
+        if (angle_to_goal > -0.05 and goal.y > -0.601):
             print('turn left')
-            speed.linear.x = 0.0
-            speed.angular.z = 0.5*a
-        elif angle_to_goal > 0.05:
+            speed.linear.x = 0.2
+            speed.angular.z = 0.2
+        elif (angle_to_goal < -0.05 and goal.y < -0.601):
+            # angle_to_goal > 0.05:
             print('turn right')
-            speed.linear.x = 0.0
-            speed.angular.z = 0.5*a
+            speed.linear.x = 0.2
+            speed.angular.z = -0.2
         else :
             print('move')
-            speed.linear.x = 0.3
+            speed.linear.x = 0.2
             speed.angular.z = 0.0
         self.cmd.publish(speed)
 
