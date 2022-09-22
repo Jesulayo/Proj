@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
 import rospy
-from geometry_msgs.msg import PointStamped, Point, Twist
-from nav_msgs.msg import Odometry
+from geometry_msgs.msg import PointStamped, Point, Twist,PoseStamped
+from nav_msgs.msg import Odometry, Path
+from std_msgs.msg import Bool
 from tf.transformations import euler_from_quaternion
 import math
 
@@ -11,68 +12,47 @@ import math
 
 class CenterPoint:
     def __init__(self):
-        self.x = 0.0
-        self.y = 0.0
-        self.theta = 0.0
+        self.path = Path()
         goal = Point()
 
-
         self.subscriber = rospy.Subscriber("/point_pub", PointStamped, self.process)
-        self.odom = rospy.Subscriber("/thorvald_001/odometry/gazebo", Odometry, self.newOdom)
+        self.odom = rospy.Subscriber("/thorvald_001/odometry/gazebo", Odometry, self.robot_odometry)
         self.cmd = rospy.Publisher("/thorvald_001/teleop_joy/cmd_vel", Twist, queue_size=10)
+        self.path_pub = rospy.Publisher('/patho', Path, queue_size =10)
         self.rate = rospy.Rate(10)
 
 
+    def robot_odometry(self, msg):
+        self.path.header = msg.header
+        
+        pose = PoseStamped()
+        pose.header = msg.header
+        pose.pose = msg.pose.pose
+        self.path.poses.append(pose)
+        self.path_pub.publish(self.path)
 
-    def newOdom(self, msg):
-        # print('received odom')
-        self.x = msg.pose.pose.position.x
-        self.y = msg.pose.pose.position.y
-        rot_q = msg.pose.pose.orientation
-        # print("self x: " + str(self.x))
-        # print("self y: " + str(self.y))
-
-        # print('pose: ' + str(rot_q))
-        # print()
-        (roll, pitch, self.theta) = euler_from_quaternion([rot_q.x, rot_q.y, rot_q.z, rot_q.w])
-        # print('x: ' + str(self.x))
-        # print('y: ' + str(self.y))
-        # print('z: ' + str(self.theta))
 
     def process(self, data):
         goal = data.point
-        print('x: ' + str(goal.x))
-        print('y: ' + str(goal.y))
-
-
-        # inc_x = goal.x - self.x
-        # inc_y = goal.y - self.y
 
         angle_to_goal = math.atan2(goal.y, goal.x)
-        # print('angle: ' + str(angle_to_goal))
-        # print('theta: ' + str(self.theta))
-        speed = Twist()
-        a = angle_to_goal - self.theta
-        print('angle_to_goal' + str(angle_to_goal))
-        # print('a: ' + str(a))
 
+        speed = Twist()
 
         if (angle_to_goal > -0.05 and goal.y > -0.601):
             print('turn left')
-            speed.linear.x = 0.2
-            speed.angular.z = 0.2
-        elif (angle_to_goal < -0.05 and goal.y < -0.601):
-            # angle_to_goal > 0.05:
+            speed.linear.x = 0.8
+            speed.angular.z = 0.1
+        elif (angle_to_goal < -0.05  and goal.y < -0.3):
             print('turn right')
-            speed.linear.x = 0.2
-            speed.angular.z = -0.2
+            speed.linear.x = 0.8
+            speed.angular.z = -0.1
         else :
             print('move')
-            speed.linear.x = 0.2
+            speed.linear.x = 0.8
             speed.angular.z = 0.0
         self.cmd.publish(speed)
 
-# if a > -0.2 and a < 0.2
 if __name__ == '__main__':
     rospy.init_node('sub_laser', anonymous=True)
     make_thorvald_move = CenterPoint()
